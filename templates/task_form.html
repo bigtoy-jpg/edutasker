@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Task" if task else "Create Task" }}{% endblock %}
+
+{% block content %}
+<div class="task-form-page">
+    <h2><i class="fas fa-{{ 'edit' if task else 'plus' }}"></i> {{ "Edit Task" if task else "Create New Task" }}</h2>
+    
+    <form method="POST" class="task-form" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Task Title *</label>
+            <input type="text" id="title" name="title" required 
+                   value="{{ task.title if task else '' }}"
+                   placeholder="Enter task title">
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4" 
+                      placeholder="Enter task description">{{ task.description if task else '' }}</textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category" required>
+                    <option value="general" {% if task and task.category == 'general' %}selected{% endif %}>General</option>
+                    <option value="math" {% if task and task.category == 'math' %}selected{% endif %}>Math</option>
+                    <option value="science" {% if task and task.category == 'science' %}selected{% endif %}>Science</option>
+                    <option value="programming" {% if task and task.category == 'programming' %}selected{% endif %}>Programming</option>
+                    <option value="language" {% if task and task.category == 'language' %}selected{% endif %}>Language</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="difficulty">Difficulty</label>
+                <select id="difficulty" name="difficulty" required>
+                    <option value="easy" {% if task and task.difficulty == 'easy' %}selected{% endif %}>Easy (5 pts)</option>
+                    <option value="medium" {% if task and task.difficulty == 'medium' %}selected{% endif %}>Medium (10 pts)</option>
+                    <option value="hard" {% if task and task.difficulty == 'hard' %}selected{% endif %}>Hard (20 pts)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="due_date">Due Date</label>
+            <input type="date" id="due_date" name="due_date" 
+                   value="{{ task.due_date if task else '' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="file">Attach Files</label>
+            <input type="file" id="file" name="file" multiple 
+                   accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar">
+            <small>Maximum file size: 16MB. Allowed formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, PNG, JPG, JPEG, GIF, ZIP, RAR</small>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-{{ 'save' if task else 'plus' }}"></i> 
+                {{ "Update Task" if task else "Create Task" }}
+            </button>
+            <a href="/tasks" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }}{% endblock %}
+
+{% block content %}
+<div class="group-detail-page">
+    <div class="group-header">
+        <div class="group-info">
+            <h2><i class="fas fa-users"></i> {{ group.name }}</h2>
+            <p class="group-description">{{ group.description }}</p>
+            <div class="group-meta">
+                <span><i class="fas fa-user"></i> Created by {{ group.creator }}</span>
+                <span><i class="fas fa-calendar"></i> {{ group.created_at.strftime('%b %d, %Y') if group.created_at else 'Recently' }}</span>
+                {% if group.is_private %}
+                    <span class="private-badge"><i class="fas fa-lock"></i> Private</span>
+                {% else %}
+                    <span class="public-badge"><i class="fas fa-globe"></i> Public</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="group-actions">
+            {% if is_member %}
+                <button class="btn btn-danger" onclick="leaveGroup('{{ group.id }}')">
+                    <i class="fas fa-sign-out-alt"></i> Leave Group
+                </button>
+            {% else %}
+                <button class="btn btn-primary" onclick="joinGroup('{{ group.id }}')">
+                    <i class="fas fa-user-plus"></i> Join Group
+                </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="group-content">
+        <div class="group-tasks">
+            <div class="section-header">
+                <h3><i class="fas fa-tasks"></i> Group Tasks</h3>
+                {% if is_member %}
+                    <button class="btn btn-primary" onclick="showTaskForm()">
+                        <i class="fas fa-plus"></i> Add Task
+                    </button>
+                {% endif %}
+            </div>
+            
+            <div id="groupTaskForm" class="task-form-modal" style="display: none;">
+                <div class="modal-content">
+                    <h4>Create Group Task</h4>
+                    <form id="createGroupTaskForm">
+                        <div class="form-group">
+                            <input type="text" name="title" placeholder="Task title" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea name="description" placeholder="Task description"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <select name="category">
+                                <option value="general">General</option>
+                                <option value="math">Math</option>
+                                <option value="science">Science</option>
+                                <option value="programming">Programming</option>
+                                <option value="language">Language</option>
+                            </select>
+                            <select name="difficulty">
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="date" name="due_date">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Create Task</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideTaskForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            {% if group_tasks %}
+                <div class="tasks-list">
+                    {% for task in group_tasks %}
+                        <div class="task-item">
+                            <div class="task-header">
+                                <h4>{{ task.title }}</h4>
+                                <div class="task-meta">
+                                    <span class="category {{ task.category }}">{{ task.category }}</span>
+                                    <span class="difficulty {{ task.difficulty }}">{{ task.difficulty }}</span>
+                                    <span class="points">{{ task.points }} pts</span>
+                                </div>
+                            </div>
+                            <p class="task-description">{{ task.description }}</p>
+                            {% if task.due_date %}
+                                <p class="task-due-date"><i class="fas fa-calendar"></i> Due: {{ task.due_date }}</p>
+                            {% endif %}
+                            <div class="task-footer">
+                                <span><i class="fas fa-user"></i> {{ task.username }}</span>
+                                <span><i class="fas fa-clock"></i> {{ task.created_at.strftime('%b %d, %Y') if task.created_at else 'Recently' }}</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-tasks">
+                    <i class="fas fa-tasks"></i>
+                    <h4>No tasks yet</h4>
+                    <p>{% if is_member %}Add the first task to get started!{% else %}Join this group to see and create tasks.{% endif %}</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="group-members">
+            <h3><i class="fas fa-users"></i> Members ({{ group.members|length }})</h3>
+            <div class="members-list">
+                {% for member in group.members %}
+                    <div class="member-item">
+                        <div class="member-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="member-info">
+                            <span class="member-name">{{ member }}</span>
+                            {% if member in group.admins %}
+                                <span class="admin-badge"><i class="fas fa-crown"></i> Admin</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTaskForm() {
+    document.getElementById('groupTaskForm').style.display = 'block';
+}
+
+function hideTaskForm() {
+    document.getElementById('groupTaskForm').style.display = 'none';
+}
+
+function joinGroup(groupId) {
+    window.location.href = `/groups/${groupId}/join`;
+}
+
+function leaveGroup(groupId) {
+    if (confirm('Are you sure you want to leave this study group?')) {
+        window.location.href = `/groups/${groupId}/leave`;
+    }
+}
+
+// Handle group task creation
+document.getElementById('createGroupTaskForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = Object.fromEntries(formData.entries());
+    
+    fetch(`/groups/{{ group.id }}/tasks`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            hideTaskForm();
+            location.reload();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to create task'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to create task');
+    });
+});
+</script>
+{% endblock %}

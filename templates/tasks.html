@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}My Tasks{% endblock %}
+
+{% block content %}
+<div class="tasks-page">
+    <div class="tasks-header">
+        <h2><i class="fas fa-tasks"></i> My Tasks</h2>
+        <a href="/tasks/new" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Task
+        </a>
+    </div>
+    
+    <div class="filters">
+        <form method="GET" class="filter-form">
+            <select name="category" onchange="this.form.submit()">
+                <option value="all" {% if category_filter == 'all' %}selected{% endif %}>All Categories</option>
+                <option value="math" {% if category_filter == 'math' %}selected{% endif %}>Math</option>
+                <option value="science" {% if category_filter == 'science' %}selected{% endif %}>Science</option>
+                <option value="programming" {% if category_filter == 'programming' %}selected{% endif %}>Programming</option>
+                <option value="language" {% if category_filter == 'language' %}selected{% endif %}>Language</option>
+                <option value="general" {% if category_filter == 'general' %}selected{% endif %}>General</option>
+            </select>
+            
+            <select name="difficulty" onchange="this.form.submit()">
+                <option value="all" {% if difficulty_filter == 'all' %}selected{% endif %}>All Difficulties</option>
+                <option value="easy" {% if difficulty_filter == 'easy' %}selected{% endif %}>Easy</option>
+                <option value="medium" {% if difficulty_filter == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="hard" {% if difficulty_filter == 'hard' %}selected{% endif %}>Hard</option>
+            </select>
+        </form>
+    </div>
+    
+    <div class="tasks-list">
+        {% for task in tasks %}
+            <div class="task-item {{ 'completed' if task.completed else '' }}">
+                <div class="task-header">
+                    <h3>{{ task.title }}</h3>
+                    <div class="task-meta">
+                        <span class="category {{ task.category }}">{{ task.category }}</span>
+                        <span class="difficulty {{ task.difficulty }}">{{ task.difficulty }}</span>
+                        <span class="points">{{ task.points }} pts</span>
+                    </div>
+                </div>
+                
+                <p class="task-description">{{ task.description }}</p>
+                
+                {% if task.due_date %}
+                    <div class="task-due-date">
+                        <i class="fas fa-calendar"></i> Due: {{ task.due_date }}
+                    </div>
+                {% endif %}
+                
+                <div class="task-actions">
+                    {% if not task.completed %}
+                        <a href="/tasks/{{ task.id }}/complete" class="btn btn-success">
+                            <i class="fas fa-check"></i> Complete
+                        </a>
+                        <button class="btn btn-primary" onclick="startTimer('{{ task.id }}')" id="startBtn_{{ task.id }}">
+                            <i class="fas fa-play"></i> Start Timer
+                        </button>
+                        <button class="btn btn-secondary" onclick="stopTimer('{{ task.id }}')" id="stopBtn_{{ task.id }}" style="display: none;">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    {% endif %}
+                    <a href="/tasks/{{ task.id }}/edit" class="btn btn-secondary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="/tasks/{{ task.id }}/delete" class="btn btn-danger"
+                       onclick="return confirm('Are you sure you want to delete this task?')">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+                
+                {% if task.completed %}
+                    <div class="completed-info">
+                        <i class="fas fa-check-circle"></i> 
+                        Completed on {{ task.completed_at.strftime('%b %d, %Y') if task.completed_at else 'Recently' }}
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="no-tasks">
+                <i class="fas fa-tasks"></i>
+                <h3>No tasks found</h3>
+                <p>Create your first task to get started!</p>
+                <a href="/tasks/new" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Task
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+let currentSessions = {};
+
+function startTimer(taskId) {
+    fetch(`/time/start/${taskId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            currentSessions[taskId] = {
+                sessionId: result.session_id,
+                startTime: new Date(result.start_time)
+            };
+            
+            document.getElementById(`startBtn_${taskId}`).style.display = 'none';
+            document.getElementById(`stopBtn_${taskId}`).style.display = 'inline-block';
+            
+            // Start updating the timer display
+            updateTimerDisplay(taskId);
+        } else {
+            alert('Error: ' + (result.error || 'Failed to start timer'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to start timer');
+    });
+}
+
+function stopTimer(taskId) {
+    if (!currentSessions[taskId]) return;
+    
+    fetch(`/time/stop/${currentSessions[taskId].sessionId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            delete currentSessions[taskId];
+            document.getElementById(`startBtn_${taskId}`).style.display = 'inline-block';
+            document.getElementById(`stopBtn_${taskId}`).style.display = 'none';
+            
+            // Show completion message
+            const duration = Math.floor(result.duration);
+            const minutes = Math.floor(duration / 60);
+            const seconds = duration % 60;
+            alert(`Timer stopped! Total time: ${minutes}m ${seconds}s`);
+        } else {
+            alert('Error: ' + (result.error || 'Failed to stop timer'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to stop timer');
+    });
+}
+
+function updateTimerDisplay(taskId) {
+    if (!currentSessions[taskId]) return;
+    
+    const session = currentSessions[taskId];
+    const elapsed = Math.floor((new Date() - session.startTime) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = elapsed % 60;
+    
+    const stopBtn = document.getElementById(`stopBtn_${taskId}`);
+    if (stopBtn) {
+        stopBtn.innerHTML = `<i class="fas fa-stop"></i> Stop (${minutes}m ${seconds}s)`;
+    }
+    
+    // Update every second
+    setTimeout(() => updateTimerDisplay(taskId), 1000);
+}
+
+// Check for active sessions on page load
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/time/sessions')
+        .then(response => response.json())
+        .then(data => {
+            if (data.sessions) {
+                data.sessions.forEach(session => {
+                    if (!session.end_time) {
+                        currentSessions[session.task_id] = {
+                            sessionId: session.id,
+                            startTime: new Date(session.start_time)
+                        };
+                        
+                        document.getElementById(`startBtn_${session.task_id}`).style.display = 'none';
+                        document.getElementById(`stopBtn_${session.task_id}`).style.display = 'inline-block';
+                        
+                        updateTimerDisplay(session.task_id);
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error loading sessions:', error));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h2>Welcome, {{ username }}! 🧠</h2>
+        <div class="user-level">
+            <span class="level-badge">{{ progress.level }}</span>
+            <span class="points">{{ progress.points }} points</span>
+        </div>
+    </div>
+    
+    <div class="dashboard-content">
+        <div class="dashboard-card">
+            <h3><i class="fas fa-tasks"></i> Your Tasks</h3>
+            <div class="task-stats">
+                <div class="stat">
+                    <span class="stat-number">{{ total_tasks }}</span>
+                    <span class="stat-label">Total Tasks</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">{{ completed_tasks }}</span>
+                    <span class="stat-label">Completed</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-number">{{ completion_rate|round(1) }}%</span>
+                    <span class="stat-label">Completion Rate</span>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ completion_rate }}%"></div>
+            </div>
+            <a href="/tasks" class="btn btn-primary">Manage Tasks</a>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3><i class="fas fa-chart-line"></i> Your Progress</h3>
+            <div class="progress-info">
+                <p><strong>Current Level:</strong> {{ progress.level }}</p>
+                <p><strong>Total Points:</strong> {{ progress.points }}</p>
+                <p><strong>Tasks Completed:</strong> {{ progress.completed_tasks }}</p>
+            </div>
+            <div class="level-progress">
+                {% set next_level_points = {'Beginner': 50, 'Intermediate': 150, 'Advanced': 300, 'Expert': 500, 'Master': 1000} %}
+                {% set current_level_points = {'Beginner': 0, 'Intermediate': 50, 'Advanced': 150, 'Expert': 300, 'Master': 500} %}
+                {% set progress_to_next = ((progress.points - current_level_points[progress.level]) / (next_level_points[progress.level] - current_level_points[progress.level]) * 100) %}
+                <div class="level-bar">
+                    <div class="level-fill" style="width: {{ progress_to_next|round(1) }}%"></div>
+                </div>
+                <small>{{ next_level_points[progress.level] - progress.points }} points to next level</small>
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3><i class="fas fa-trophy"></i> Achievements</h3>
+            <div class="achievements">
+                {% if progress.points >= 500 %}
+                    <div class="achievement unlocked">
+                        <i class="fas fa-crown"></i>
+                        <span>Master Student</span>
+                    </div>
+                {% endif %}
+                {% if progress.points >= 300 %}
+                    <div class="achievement unlocked">
+                        <i class="fas fa-star"></i>
+                        <span>Expert Learner</span>
+                    </div>
+                {% endif %}
+                {% if progress.points >= 150 %}
+                    <div class="achievement unlocked">
+                        <i class="fas fa-medal"></i>
+                        <span>Advanced Student</span>
+                    </div>
+                {% endif %}
+                {% if progress.points >= 50 %}
+                    <div class="achievement unlocked">
+                        <i class="fas fa-award"></i>
+                        <span>Intermediate Level</span>
+                    </div>
+                {% endif %}
+                {% if progress.completed_tasks >= 1 %}
+                    <div class="achievement unlocked">
+                        <i class="fas fa-check-circle"></i>
+                        <span>First Task</span>
+                    </div>
+                {% endif %}
+                {% if progress.completed_tasks >= 10 %}
+                    <div class="achievement unlocked">
+                        <i class="fas fa-fire"></i>
+                        <span>Task Master</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3><i class="fas fa-clock"></i> Recent Activity</h3>
+            <div class="recent-tasks">
+                {% for task in tasks[:5] %}
+                    <div class="recent-task {{ 'completed' if task.completed else 'pending' }}">
+                        <i class="fas {{ 'fa-check-circle' if task.completed else 'fa-circle' }}"></i>
+                        <span>{{ task.title }}</span>
+                        <small>{{ task.created_at.strftime('%b %d') if task.created_at else 'Recently' }}</small>
+                    </div>
+                {% else %}
+                    <p>No tasks yet. <a href="/tasks/new">Create your first task!</a></p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3><i class="fas fa-plus-circle"></i> Quick Actions</h3>
+            <div class="quick-actions">
+                <a href="/tasks/new" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Task
+                </a>
+                <a href="/tasks" class="btn btn-secondary">
+                    <i class="fas fa-list"></i> View All Tasks
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

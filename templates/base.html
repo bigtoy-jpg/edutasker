@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTasker - {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#667eea">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-graduation-cap"></i> EduTasker</h1>
+            <nav>
+                {% if session.username %}
+                    <span><i class="fas fa-user"></i> {{ session.username }}</span>
+                    <a href="/dashboard"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="/tasks"><i class="fas fa-tasks"></i> Tasks</a>
+                    <a href="/calendar"><i class="fas fa-calendar"></i> Calendar</a>
+                    <a href="/groups"><i class="fas fa-users"></i> Groups</a>
+                    <a href="/files"><i class="fas fa-folder"></i> Files</a>
+                    <a href="/tasks/new"><i class="fas fa-plus"></i> New Task</a>
+                    <div class="notification-bell" onclick="toggleNotifications()">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationCount" class="notification-count" style="display: none;">0</span>
+                    </div>
+                    <a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                {% else %}
+                    <a href="/"><i class="fas fa-sign-in-alt"></i> Login</a>
+                    <a href="/register"><i class="fas fa-user-plus"></i> Register</a>
+                {% endif %}
+            </nav>
+        </header>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Notifications Dropdown -->
+        <div id="notificationsDropdown" class="notifications-dropdown" style="display: none;">
+            <h4>Notifications</h4>
+            <div id="notificationsList">
+                <p>Loading notifications...</p>
+            </div>
+            <a href="#" onclick="markAllNotificationsRead()">Mark all as read</a>
+        </div>
+        
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        <footer>
+            <p>&copy; 2024 EduTasker. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(msg => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 300);
+            });
+        }, 5000);
+        
+        // Notification system
+        let notificationInterval;
+        
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationsDropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            
+            if (dropdown.style.display === 'block') {
+                loadNotifications();
+            }
+        }
+        
+        function loadNotifications() {
+            fetch('/notifications')
+                .then(response => response.json())
+                .then(data => {
+                    const notificationsList = document.getElementById('notificationsList');
+                    const notificationCount = document.getElementById('notificationCount');
+                    
+                    if (data.notifications && data.notifications.length > 0) {
+                        notificationsList.innerHTML = data.notifications.map(notif => `
+                            <div class="notification-item ${notif.type}" onclick="markNotificationRead('${notif.id}')">
+                                <div class="notification-header">
+                                    <strong>${notif.title}</strong>
+                                    <small>${formatTime(notif.created_at)}</small>
+                                </div>
+                                <div class="notification-message">${notif.message}</div>
+                            </div>
+                        `).join('');
+                        
+                        notificationCount.textContent = data.notifications.length;
+                        notificationCount.style.display = 'inline-block';
+                    } else {
+                        notificationsList.innerHTML = '<p>No new notifications</p>';
+                        notificationCount.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                });
+        }
+        
+        function markNotificationRead(notificationId) {
+            fetch(`/notifications/${notificationId}/read`)
+                .then(() => {
+                    loadNotifications();
+                });
+        }
+        
+        function markAllNotificationsRead() {
+            loadNotifications(); // This will eventually mark all as read
+        }
+        
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000); // seconds
+            
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+            return date.toLocaleDateString();
+        }
+        
+        // Close notifications when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('notificationsDropdown');
+            const bell = document.querySelector('.notification-bell');
+            
+            if (!dropdown.contains(event.target) && !bell.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+        
+        // Load notifications periodically for logged-in users
+        {% if session.username %}
+        setInterval(() => {
+            fetch('/notifications')
+                .then(response => response.json())
+                .then(data => {
+                    const notificationCount = document.getElementById('notificationCount');
+                    if (data.notifications && data.notifications.length > 0) {
+                        notificationCount.textContent = data.notifications.length;
+                        notificationCount.style.display = 'inline-block';
+                    } else {
+                        notificationCount.style.display = 'none';
+                    }
+                });
+        }, 30000); // Check every 30 seconds
+        {% endif %}
+    </script>
+</body>
+</html>

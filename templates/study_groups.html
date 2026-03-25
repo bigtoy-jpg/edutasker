@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Study Groups{% endblock %}
+
+{% block content %}
+<div class="study-groups-page">
+    <div class="groups-header">
+        <h2><i class="fas fa-users"></i> Study Groups</h2>
+        <a href="/groups/new" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Group
+        </a>
+    </div>
+    
+    <div class="groups-content">
+        <div class="my-groups">
+            <h3><i class="fas fa-user-friends"></i> My Groups</h3>
+            {% if user_groups %}
+                <div class="groups-grid">
+                    {% for group in user_groups %}
+                        <div class="group-card">
+                            <div class="group-header">
+                                <h4>{{ group.name }}</h4>
+                                {% if group.is_private %}
+                                    <span class="private-badge"><i class="fas fa-lock"></i> Private</span>
+                                {% endif %}
+                            </div>
+                            <p class="group-description">{{ group.description }}</p>
+                            <div class="group-stats">
+                                <span><i class="fas fa-users"></i> {{ group.members|length }} members</span>
+                                <span><i class="fas fa-tasks"></i> {{ group.tasks|length if group.tasks else 0 }} tasks</span>
+                            </div>
+                            <div class="group-actions">
+                                <a href="/groups/{{ group.id }}" class="btn btn-secondary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <button class="btn btn-danger" onclick="leaveGroup('{{ group.id }}')">
+                                    <i class="fas fa-sign-out-alt"></i> Leave
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-groups">
+                    <i class="fas fa-user-friends"></i>
+                    <h4>You haven't joined any study groups yet</h4>
+                    <p>Join a group below or create your own!</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="available-groups">
+            <h3><i class="fas fa-globe"></i> Available Groups</h3>
+            {% if all_groups %}
+                <div class="groups-grid">
+                    {% for group in all_groups %}
+                        {% if session.username not in group.members %}
+                            <div class="group-card">
+                                <div class="group-header">
+                                    <h4>{{ group.name }}</h4>
+                                    {% if group.is_private %}
+                                        <span class="private-badge"><i class="fas fa-lock"></i> Private</span>
+                                    {% else %}
+                                        <span class="public-badge"><i class="fas fa-globe"></i> Public</span>
+                                    {% endif %}
+                                </div>
+                                <p class="group-description">{{ group.description }}</p>
+                                <div class="group-stats">
+                                    <span><i class="fas fa-users"></i> {{ group.members|length }} members</span>
+                                    <span><i class="fas fa-tasks"></i> {{ group.tasks|length if group.tasks else 0 }} tasks</span>
+                                </div>
+                                <div class="group-actions">
+                                    <a href="/groups/{{ group.id }}" class="btn btn-secondary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <button class="btn btn-primary" onclick="joinGroup('{{ group.id }}')">
+                                        <i class="fas fa-user-plus"></i> Join
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-groups">
+                    <i class="fas fa-globe"></i>
+                    <h4>No study groups available</h4>
+                    <p>Be the first to create a study group!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function joinGroup(groupId) {
+    if (confirm('Are you sure you want to join this study group?')) {
+        window.location.href = `/groups/${groupId}/join`;
+    }
+}
+
+function leaveGroup(groupId) {
+    if (confirm('Are you sure you want to leave this study group?')) {
+        window.location.href = `/groups/${groupId}/leave`;
+    }
+}
+</script>
+{% endblock %}

@@ -1,8 +1,15 @@
-<form method="POST">
-    <h2>Login</h2>
-    <input name="username" placeholder="Username" required>
-    <input name="password" placeholder="Password" type="password" required>
-    <button type="submit">Login</button>
-    <p><a href="/register">Create Account</a></p>
-  </form>
-  
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-form">
+    <form method="POST">
+        <h2>Login</h2>
+        <input name="username" placeholder="Username" required>
+        <input name="password" placeholder="Password" type="password" required>
+        <button type="submit">Login</button>
+        <p><a href="/register">Create Account</a></p>
+    </form>
+</div>
+{% endblock %}
